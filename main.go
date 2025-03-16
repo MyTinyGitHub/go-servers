@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"sync/atomic"
 )
@@ -29,13 +30,57 @@ func (cfg *apiConfig) serveMetrics(res http.ResponseWriter, req *http.Request) {
   res.Header().Add("Content-Type", "text/plain")
 
   value := cfg.fileserverHits.Load()
-  fmt.Fprintf(res, "Hits: %v", value)
+
+
+  page := `
+    <html>
+      <body>
+        <h1>Welcome, Chirpy Admin</h1>
+        <p>Chirpy has been visited %d times!</p>
+      </body>
+    </html>
+  `
+
+  fmt.Fprintf(res, page, value)
 }
 
 func (cfg *apiConfig) resetMetrics(res http.ResponseWriter, req *http.Request) {
   res.WriteHeader(200)
   res.Header().Add("Content-Type", "text/plain")
   cfg.fileserverHits.Store(0)
+}
+
+func validateChirp(res http.ResponseWriter, req *http.Request) {
+  body, error := io.ReadAll(req.Body)
+  if error != nil {
+    res.WriteHeader(http.StatusBadRequest)
+    res.Header().Add("Content-Type", "text/plain")
+    fmt.Fprintf(res, `
+      {
+        "error": "Something went wrong"
+      }`)
+    return 
+  }
+
+  stringBody := string(body)
+  if len(stringBody) > 140 {
+    res.WriteHeader(http.StatusBadRequest)
+    res.Header().Add("Content-Type", "text/plain")
+    fmt.Fprintf(res, `
+      {
+        "error": "Chirp is too long"
+      }`)
+    return 
+  }
+
+    res.WriteHeader(http.StatusOK)
+    res.Header().Add("Content-Type", "text/plain")
+    fmt.Fprintf(res, `
+      {
+        "valid": true
+      }
+      `)
+
 }
 
 func main() {
@@ -51,9 +96,10 @@ func main() {
   handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
   
   mux.HandleFunc("/app/", conf.middlewareMetricsInc(handler))
-  mux.HandleFunc("GET /healthz", serveHTTPHealthz)
-  mux.HandleFunc("GET /metrics", conf.serveMetrics)
-  mux.HandleFunc("POST /reset", conf.resetMetrics)
+  mux.HandleFunc("GET /api/healthz", serveHTTPHealthz)
+  mux.HandleFunc("GET /admin/metrics", conf.serveMetrics)
+  mux.HandleFunc("POST /admin/reset", conf.resetMetrics)
+  mux.HandleFunc("POST /api/validate_chirp", validateChirp)
   
   server.ListenAndServe()
 }
