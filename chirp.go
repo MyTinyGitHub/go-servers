@@ -68,14 +68,14 @@ func (cfg *apiConfig) getChirpById(res http.ResponseWriter, req *http.Request) {
 func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		badRequest("Something went wrong", res)
+		respondWithError("Something went wrong",http.StatusBadRequest, res)
 		return
 	}
 
 	var chirpData chirpData
 	err = json.Unmarshal(body, &chirpData)
 	if err != nil {
-		badRequest("Unable to unmarshal data", res)
+		respondWithError("Unable to unmarshal data", http.StatusBadRequest, res)
 		return
 	}
 
@@ -95,8 +95,8 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 		Body:   chirpData.Body,
 	})
 
-	if err != nil {
-		badRequest("Error creating chirp: "+err.Error(), res)
+	if err != nil { 
+		respondWithError("Error creating chirp: "+err.Error(), http.StatusBadRequest, res)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusCreated)
 	data, err := json.Marshal(userData)
 	if err != nil {
-		badRequest("Error Marshalling created user", res)
+		respondWithError("Error Marshalling created user", http.StatusBadRequest, res)
 		return
 	}
 
@@ -121,7 +121,7 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 func validateChirp(message string, res http.ResponseWriter) bool {
 
 	if len(message) > 140 {
-		badRequest("Chirp is too long", res)
+		respondWithError("Chirp is too long", http.StatusBadRequest, res)
 		return false
 	}
 

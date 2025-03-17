@@ -14,14 +14,14 @@ func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		badRequest("Something went wrong", res)
+		respondWithError("Something went wrong", http.StatusBadRequest, res)
 		return
 	}
 
 	var userEmail email
 	err = json.Unmarshal(body, &userEmail)
 	if err != nil {
-		badRequest("Unable to unmarshal data", res)
+		respondWithError("Unable to unmarshal data", http.StatusBadRequest, res)
 		return
 	}
 
@@ -32,7 +32,7 @@ func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 
 	user, err := cfg.dabaseQueries.CreateUser(req.Context(), value)
 	if err != nil {
-		badRequest("Error creating user"+err.Error(), res)
+		respondWithError("Error creating user"+err.Error(), http.StatusBadRequest, res)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusCreated)
 	data, err := json.Marshal(userData)
 	if err != nil {
-		badRequest("Error Marshalling created user", res)
+		respondWithError("Error Marshalling created user", http.StatusBadRequest, res)
 		return
 	}
 

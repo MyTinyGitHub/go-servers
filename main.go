@@ -58,7 +58,7 @@ type error_value struct {
 	Error string `json:"error"`
 }
 
-func badRequest(message string, res http.ResponseWriter) {
+func respondWithError(message string, httpStatus int, res http.ResponseWriter) {
 	res.WriteHeader(http.StatusBadRequest)
 	res.Header().Add("Content-Type", "text/plain")
 	dat, _ := json.Marshal(error_value{Error: message})
