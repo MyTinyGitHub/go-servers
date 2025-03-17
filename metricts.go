@@ -32,15 +32,15 @@ func (cfg *apiConfig) serveMetrics(res http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) resetMetrics(res http.ResponseWriter, req *http.Request) {
-  platform := os.Getenv("PLATFORM")
+	platform := os.Getenv("PLATFORM")
 
-  if platform != "dev" {
-    res.WriteHeader(http.StatusForbidden)
-    res.Header().Add("Content-Type", "text/plain")
-    return
-  }
+	if platform != "dev" {
+		res.WriteHeader(http.StatusForbidden)
+		res.Header().Add("Content-Type", "text/plain")
+		return
+	}
 
-  cfg.dabaseQueries.DeleteUsers(req.Context())
+	cfg.dabaseQueries.DeleteUsers(req.Context())
 	res.WriteHeader(200)
 	res.Header().Add("Content-Type", "text/plain")
 }
