@@ -47,6 +47,7 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", conf.serveMetrics)
 	mux.HandleFunc("POST /admin/reset", conf.resetMetrics)
 	mux.HandleFunc("POST /api/users", conf.addUser)
+	mux.HandleFunc("POST /api/login", conf.login)
 	mux.HandleFunc("POST /api/chirps", conf.addChirp)
 	mux.HandleFunc("GET /api/chirps", conf.getChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpId}", conf.getChirpById)
@@ -59,7 +60,7 @@ type error_value struct {
 }
 
 func respondWithError(message string, httpStatus int, res http.ResponseWriter) {
-	res.WriteHeader(http.StatusBadRequest)
+	res.WriteHeader(httpStatus)
 	res.Header().Add("Content-Type", "text/plain")
 	dat, _ := json.Marshal(error_value{Error: message})
 	res.Write(dat)

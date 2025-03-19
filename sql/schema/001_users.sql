@@ -3,7 +3,8 @@ CREATE TABLE users (
   id UUID,
   created_at TIMESTAMP,
   updated_at TIMESTAMP,
-  email TEXT,
+  email TEXT NOT NULL,
+  hashed_password TEXT NOT NULL,
 
   PRIMARY KEY(id)
 );
