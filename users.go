@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"go-servers/internal/auth"
 	"go-servers/internal/database"
 	"io"
 	"net/http"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -69,6 +71,7 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
     Password string `json:"password"`
+    ExpiresInSeconds int `json:"expires_in_seconds"`
 	}
 
 	body, err := io.ReadAll(req.Body)
@@ -95,11 +98,22 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
     return
   }
 
+
+  if input.ExpiresInSeconds == 0 || input.ExpiresInSeconds > 60 {
+    input.ExpiresInSeconds = 60
+  }
+
+  token, err := auth.MakeJWT(user.ID, "TOP", time.Duration(input.ExpiresInSeconds) * time.Second)
+  if err != nil {
+    respondWithError("Unable to create jwt token", http.StatusInternalServerError, res)
+  }
+
 	type userType struct {
 		Id        string `json:"id"`
 		CreatedAt string `json:"created_at"`
 		UpdatedAt string `json:"updated_at"`
 		Email     string `json:"email"`
+    Token string `json:"token"`
 	}
 
 	userData := userType{
@@ -107,6 +121,7 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 		CreatedAt: user.CreatedAt.Time.String(),
 		UpdatedAt: user.UpdatedAt.Time.String(),
 		Email:     user.Email,
+    Token: token, 
 	}
 
 	res.WriteHeader(http.StatusOK)

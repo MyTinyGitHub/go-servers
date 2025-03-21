@@ -1,11 +1,36 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+func TestBearerToken(t *testing.T) {
+
+  testCases := []struct{
+    input string
+    want string
+  } {
+    { input: "Bearer test", want: "test", },
+    { input: "test", want: "", },
+  }
+
+  for _, tt := range testCases {
+    header := http.Header{}
+    header.Add("Authorization", tt.input)
+
+    output, _ := GetBearerToken(&header)
+
+    if output != tt.want {
+      t.Errorf("Processing failed wanted: %v actual: %v", tt.want, output)
+      t.Fail()
+    }
+    
+  }
+}
 
 func TestJWTToken(t *testing.T) {
 

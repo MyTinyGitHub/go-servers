@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"go-servers/internal/auth"
 	"go-servers/internal/database"
 	"io"
 	"net/http"
@@ -79,11 +80,23 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+  bearer, err := auth.GetBearerToken(&req.Header)
+	if err != nil {
+		respondWithError("Bearer token not provided", http.StatusUnauthorized, res)
+		return
+	}
+
+  
+	uu_id, err := auth.ValidateJWT(bearer, "TOP")
+	if err != nil {
+		respondWithError("Bearer token not provided", http.StatusUnauthorized, res)
+		return
+	}
+
 	if ok := validateChirp(chirpData.Body, res); !ok {
 		return
 	}
 
-	uu_id, _ := uuid.Parse(chirpData.UserId)
 
 	userId := uuid.NullUUID{
 		UUID:  uu_id,
