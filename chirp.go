@@ -26,17 +26,17 @@ type chirpData struct {
 func (cfg *apiConfig) getChirps(res http.ResponseWriter, req *http.Request) {
 	chirps, _ := cfg.dabaseQueries.GetAllChirps(req.Context())
 
-  var chirpss []chirp
+	var chirpss []chirp
 
-  for _, chirpep := range chirps {
-    chirpss = append(chirpss, chirp{
-      Id: chirpep.ID.UUID.String(),
-      CreatedAt: chirpep.CreatedAt.String(),
-      UpdatedAt: chirpep.UpdatedAt.String(),
-      Body: chirpep.Body,
-      UserId: chirpep.UserID.UUID.String(),
-    })
-  }
+	for _, chirpep := range chirps {
+		chirpss = append(chirpss, chirp{
+			Id:        chirpep.ID.String(),
+			CreatedAt: chirpep.CreatedAt.String(),
+			UpdatedAt: chirpep.UpdatedAt.String(),
+			Body:      chirpep.Body,
+			UserId:    chirpep.UserID.UUID.String(),
+		})
+	}
 
 	data, _ := json.Marshal(chirpss)
 
@@ -45,20 +45,15 @@ func (cfg *apiConfig) getChirps(res http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) getChirpById(res http.ResponseWriter, req *http.Request) {
-  uu_id, _ := uuid.Parse(req.PathValue("chirpId"))
-	chirpik, _ := cfg.dabaseQueries.GetChirpById(req.Context(), uuid.NullUUID{
-    UUID: uu_id,
-    Valid: true,
-  })
-
-  chirping := chirp{
-      Id: chirpik.ID.UUID.String(),
-      CreatedAt: chirpik.CreatedAt.String(),
-      UpdatedAt: chirpik.UpdatedAt.String(),
-      Body: chirpik.Body,
-      UserId: chirpik.UserID.UUID.String(),
-  }
-  
+	uu_id, _ := uuid.Parse(req.PathValue("chirpId"))
+	chirpik, _ := cfg.dabaseQueries.GetChirpById(req.Context(), uu_id)
+	chirping := chirp{
+		Id:        chirpik.ID.String(),
+		CreatedAt: chirpik.CreatedAt.String(),
+		UpdatedAt: chirpik.UpdatedAt.String(),
+		Body:      chirpik.Body,
+		UserId:    chirpik.UserID.UUID.String(),
+	}
 
 	data, _ := json.Marshal(chirping)
 
@@ -69,7 +64,7 @@ func (cfg *apiConfig) getChirpById(res http.ResponseWriter, req *http.Request) {
 func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		respondWithError("Something went wrong",http.StatusBadRequest, res)
+		respondWithError("Something went wrong", http.StatusBadRequest, res)
 		return
 	}
 
@@ -80,13 +75,12 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-  bearer, err := auth.GetBearerToken(&req.Header)
+	bearer, err := auth.GetBearerToken(&req.Header)
 	if err != nil {
 		respondWithError("Bearer token not provided", http.StatusUnauthorized, res)
 		return
 	}
 
-  
 	uu_id, err := auth.ValidateJWT(bearer, "TOP")
 	if err != nil {
 		respondWithError("Bearer token not provided", http.StatusUnauthorized, res)
@@ -96,7 +90,6 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 	if ok := validateChirp(chirpData.Body, res); !ok {
 		return
 	}
-
 
 	userId := uuid.NullUUID{
 		UUID:  uu_id,
@@ -108,13 +101,13 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 		Body:   chirpData.Body,
 	})
 
-	if err != nil { 
+	if err != nil {
 		respondWithError("Error creating chirp: "+err.Error(), http.StatusBadRequest, res)
 		return
 	}
 
 	userData := chirp{
-		Id:        dbChirp.ID.UUID.String(),
+		Id:        dbChirp.ID.String(),
 		CreatedAt: dbChirp.CreatedAt.String(),
 		UpdatedAt: dbChirp.UpdatedAt.String(),
 		Body:      dbChirp.Body,

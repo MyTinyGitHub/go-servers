@@ -1,10 +1,10 @@
 -- +goose Up
 
 create table chirps(
-  id uuid,
-  created_at timestamp not null,
-  updated_at timestamp not null,
-  body text not null,
+  id UUID NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP NOT NULL,
+  body text NOT NULL,
   user_id uuid REFERENCES users(id) ON DELETE CASCADE
 );
 

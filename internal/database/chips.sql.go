@@ -116,7 +116,7 @@ WHERE
 ORDER BY created_at
 `
 
-func (q *Queries) GetChirpById(ctx context.Context, id uuid.NullUUID) (Chirp, error) {
+func (q *Queries) GetChirpById(ctx context.Context, id uuid.UUID) (Chirp, error) {
 	row := q.db.QueryRowContext(ctx, getChirpById, id)
 	var i Chirp
 	err := row.Scan(

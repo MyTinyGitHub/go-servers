@@ -15,7 +15,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dabaseQueries  *database.Queries
-  JwtSecret string
+	JwtSecret      string
 }
 
 func serveHTTPHealthz(res http.ResponseWriter, req *http.Request) {
@@ -28,8 +28,8 @@ func main() {
 	godotenv.Load()
 
 	dbURL := os.Getenv("DB_URL")
-  jwtSecret := os.Getenv("JWT_SECRET")
-  
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	db, _ := sql.Open("postgres", dbURL)
 	dbQueries := database.New(db)
 
@@ -37,7 +37,7 @@ func main() {
 
 	var conf apiConfig
 	conf.dabaseQueries = dbQueries
-  conf.JwtSecret = jwtSecret
+	conf.JwtSecret = jwtSecret
 
 	server := &http.Server{
 		Handler: mux,
@@ -52,6 +52,8 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", conf.resetMetrics)
 	mux.HandleFunc("POST /api/users", conf.addUser)
 	mux.HandleFunc("POST /api/login", conf.login)
+	mux.HandleFunc("POST /api/refresh", conf.refresh)
+	mux.HandleFunc("POST /api/revoke", conf.revoke)
 	mux.HandleFunc("POST /api/chirps", conf.addChirp)
 	mux.HandleFunc("GET /api/chirps", conf.getChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpId}", conf.getChirpById)

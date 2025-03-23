@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-servers/internal/auth"
 	"go-servers/internal/database"
 	"io"
 	"net/http"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
-    Password string `json:"password"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	body, err := io.ReadAll(req.Body)
@@ -30,11 +30,11 @@ func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-  hashedPassword, _ := hashPassword(input.Password)
+	hashedPassword, _ := hashPassword(input.Password)
 
-	value := database.CreateUserParams {
-    Email: input.Email,
-    HashedPassword: hashedPassword,
+	value := database.CreateUserParams{
+		Email:          input.Email,
+		HashedPassword: hashedPassword,
 	}
 
 	user, err := cfg.dabaseQueries.CreateUser(req.Context(), value)
@@ -69,9 +69,8 @@ func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 
 func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
-    Password string `json:"password"`
-    ExpiresInSeconds int `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	body, err := io.ReadAll(req.Body)
@@ -93,35 +92,50 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-  if ok := checkPasswordHash(input.Password, user.HashedPassword); ok != nil {
-    respondWithError("Cannot authenticate user", http.StatusUnauthorized, res)
-    return
-  }
+	if ok := checkPasswordHash(input.Password, user.HashedPassword); ok != nil {
+		respondWithError("Cannot authenticate user", http.StatusUnauthorized, res)
+		return
+	}
 
-
-  if input.ExpiresInSeconds == 0 || input.ExpiresInSeconds > 60 {
-    input.ExpiresInSeconds = 60
-  }
-
-  token, err := auth.MakeJWT(user.ID, "TOP", time.Duration(input.ExpiresInSeconds) * time.Second)
-  if err != nil {
-    respondWithError("Unable to create jwt token", http.StatusInternalServerError, res)
-  }
+	token, err := auth.MakeJWT(user.ID, "TOP")
+	if err != nil {
+		respondWithError("Unable to create jwt token", http.StatusInternalServerError, res)
+		return
+	}
 
 	type userType struct {
-		Id        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
-    Token string `json:"token"`
+		Id           string `json:"id"`
+		CreatedAt    string `json:"created_at"`
+		UpdatedAt    string `json:"updated_at"`
+		Email        string `json:"email"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	rtoken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError("Unable to create refresh token", http.StatusInternalServerError, res)
+		return
+	}
+
+	_, err = cfg.dabaseQueries.CreateRefreshToken(req.Context(), database.CreateRefreshTokenParams{
+		Token:  rtoken,
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		msg := fmt.Sprintf("unable to create refresh token: %v", err)
+		respondWithError(msg, http.StatusInternalServerError, res)
+		return
 	}
 
 	userData := userType{
-		Id:        user.ID.String(),
-		CreatedAt: user.CreatedAt.Time.String(),
-		UpdatedAt: user.UpdatedAt.Time.String(),
-		Email:     user.Email,
-    Token: token, 
+		Id:           user.ID.String(),
+		CreatedAt:    user.CreatedAt.Time.String(),
+		UpdatedAt:    user.UpdatedAt.Time.String(),
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: rtoken,
 	}
 
 	res.WriteHeader(http.StatusOK)
@@ -132,14 +146,13 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Write(data)
-  
 }
 
 func checkPasswordHash(password string, hash string) error {
-  return bcrypt.CompareHashAndPassword([]byte(hash),[]byte(password))
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
 
 func hashPassword(password string) (string, error) {
-  value, err := bcrypt.GenerateFromPassword([]byte(password), 10)
-  return string(value), err
+	value, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	return string(value), err
 }
