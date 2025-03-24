@@ -1,16 +1,13 @@
 package auth
 
 import (
-	"crypto/rand"
+  mRand "math/rand"
 	"encoding/hex"
 	"strconv"
 )
 
 func MakeRefreshToken() (string, error) {
-	value, err := rand.Read([]byte("Test"))
-	if err != nil {
-		return "", err
-	}
+	value := mRand.Int()
 
 	res := hex.EncodeToString([]byte(strconv.Itoa(value)))
 

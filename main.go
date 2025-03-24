@@ -51,12 +51,16 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", conf.serveMetrics)
 	mux.HandleFunc("POST /admin/reset", conf.resetMetrics)
 	mux.HandleFunc("POST /api/users", conf.addUser)
+	mux.HandleFunc("PUT /api/users", conf.updateUser)
+
 	mux.HandleFunc("POST /api/login", conf.login)
 	mux.HandleFunc("POST /api/refresh", conf.refresh)
 	mux.HandleFunc("POST /api/revoke", conf.revoke)
+
 	mux.HandleFunc("POST /api/chirps", conf.addChirp)
 	mux.HandleFunc("GET /api/chirps", conf.getChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpId}", conf.getChirpById)
+	mux.HandleFunc("DELETE /api/chirps/{chirpId}", conf.deleteChirp)
 
 	server.ListenAndServe()
 }

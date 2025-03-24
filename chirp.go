@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-servers/internal/auth"
 	"go-servers/internal/database"
 	"io"
@@ -34,7 +35,7 @@ func (cfg *apiConfig) getChirps(res http.ResponseWriter, req *http.Request) {
 			CreatedAt: chirpep.CreatedAt.String(),
 			UpdatedAt: chirpep.UpdatedAt.String(),
 			Body:      chirpep.Body,
-			UserId:    chirpep.UserID.UUID.String(),
+			UserId:    chirpep.UserID.String(),
 		})
 	}
 
@@ -44,15 +45,64 @@ func (cfg *apiConfig) getChirps(res http.ResponseWriter, req *http.Request) {
 	res.Write(data)
 }
 
+func (cfg *apiConfig) deleteChirp(res http.ResponseWriter, req *http.Request) {
+	uu_id, _ := uuid.Parse(req.PathValue("chirpId"))
+  token, err := auth.GetBearerToken(&req.Header)
+  if err != nil {
+    msg := fmt.Sprintf("unable to get access token: %v", err)
+    respondWithError(msg, http.StatusUnauthorized, res)
+    return
+  }
+
+  userId, err := auth.ValidateJWT(token, "TOP")
+  if err != nil {
+    msg := fmt.Sprintf("unable to validate the token: %v", err)
+    respondWithError(msg, http.StatusForbidden, res)
+    return
+  }
+
+  ok, err := cfg.dabaseQueries.UserHasChirp(req.Context(), database.UserHasChirpParams{
+    ID: uu_id,
+    UserID: userId,
+
+  })
+
+  if err != nil || !ok {
+    msg := fmt.Sprintf("chirp not fonud, or missing autharization: %v", err)
+    respondWithError(msg, http.StatusForbidden, res)
+    return
+  }
+
+
+
+  err = cfg.dabaseQueries.DeleteChirpOfUser(req.Context(), database.DeleteChirpOfUserParams{
+    ID: uu_id,
+    UserID: userId,
+  })
+
+  if err != nil {
+    msg := fmt.Sprintf("unable to delete a chirp: %v ", err)
+    respondWithError(msg, http.StatusNotFound, res)
+    return
+  }
+
+  res.WriteHeader(http.StatusNoContent)
+}
+
 func (cfg *apiConfig) getChirpById(res http.ResponseWriter, req *http.Request) {
 	uu_id, _ := uuid.Parse(req.PathValue("chirpId"))
-	chirpik, _ := cfg.dabaseQueries.GetChirpById(req.Context(), uu_id)
+	chirpik, err := cfg.dabaseQueries.GetChirpById(req.Context(), uu_id)
+  if err != nil {
+    msg := fmt.Sprintf("unable to find a chirp: %v ", err)
+    respondWithError(msg, http.StatusNotFound, res)
+    return
+  }
 	chirping := chirp{
 		Id:        chirpik.ID.String(),
 		CreatedAt: chirpik.CreatedAt.String(),
 		UpdatedAt: chirpik.UpdatedAt.String(),
 		Body:      chirpik.Body,
-		UserId:    chirpik.UserID.UUID.String(),
+		UserId:    chirpik.UserID.String(),
 	}
 
 	data, _ := json.Marshal(chirping)
@@ -81,7 +131,7 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	uu_id, err := auth.ValidateJWT(bearer, "TOP")
+	userId, err := auth.ValidateJWT(bearer, "TOP")
 	if err != nil {
 		respondWithError("Bearer token not provided", http.StatusUnauthorized, res)
 		return
@@ -89,11 +139,6 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 
 	if ok := validateChirp(chirpData.Body, res); !ok {
 		return
-	}
-
-	userId := uuid.NullUUID{
-		UUID:  uu_id,
-		Valid: true,
 	}
 
 	dbChirp, err := cfg.dabaseQueries.CreateChirp(req.Context(), database.CreateChirpParams{
@@ -111,7 +156,7 @@ func (cfg *apiConfig) addChirp(res http.ResponseWriter, req *http.Request) {
 		CreatedAt: dbChirp.CreatedAt.String(),
 		UpdatedAt: dbChirp.UpdatedAt.String(),
 		Body:      dbChirp.Body,
-		UserId:    dbChirp.UserID.UUID.String(),
+		UserId:    dbChirp.UserID.String(),
 	}
 
 	res.WriteHeader(http.StatusCreated)

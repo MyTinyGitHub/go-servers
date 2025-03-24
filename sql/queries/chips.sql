@@ -19,6 +19,17 @@ WHERE
   ID = $1
 ORDER BY created_at;
 
+-- name: UserHasChirp :one
+SELECT true FROM chirps
+WHERE 
+  ID = $1
+  AND user_id = $2;
+
 -- name: DeleteChirps :many
 DELETE FROM chirps
 RETURNING *;
+
+-- name: DeleteChirpOfUser :exec
+DELETE FROM chirps
+WHERE id = $1
+AND user_id = $2;

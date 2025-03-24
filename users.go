@@ -11,6 +11,77 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func (cfg *apiConfig) updateUser(res http.ResponseWriter, req *http.Request) {
+  type parameters struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+  }
+
+  token, err := auth.GetBearerToken(&req.Header)
+  if err != nil {
+    msg := fmt.Sprintf("unable to get access token: %v", err)
+    respondWithError(msg, http.StatusUnauthorized, res)
+    return
+  }
+
+  userId, err := auth.ValidateJWT(token, "TOP")
+  if err != nil {
+    msg := fmt.Sprintf("unable to validate the token: %v", err)
+    respondWithError(msg, http.StatusUnauthorized, res)
+    return
+  }
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		respondWithError("Something went wrong", http.StatusBadRequest, res)
+		return
+	}
+
+	var input parameters
+	err = json.Unmarshal(body, &input)
+	if err != nil {
+		respondWithError("Unable to unmarshal data", http.StatusBadRequest, res)
+		return
+	}
+
+	hashedPassword, _ := hashPassword(input.Password)
+
+  user, err := cfg.dabaseQueries.UpdateUser(req.Context(), database.UpdateUserParams{
+    ID: userId,
+    Email: input.Email,
+    HashedPassword: hashedPassword,
+  })
+
+  if err != nil {
+    msg := fmt.Sprintf("unable to update user: %v", err)
+    respondWithError(msg, http.StatusInternalServerError, res)
+    return
+  }
+
+	type userType struct {
+		Id        string `json:"id"`
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+		Email     string `json:"email"`
+	}
+
+	userData := userType{
+		Id:        user.ID.String(),
+		CreatedAt: user.CreatedAt.Time.String(),
+		UpdatedAt: user.UpdatedAt.Time.String(),
+		Email:     user.Email,
+	}
+
+	data, err := json.Marshal(userData)
+	if err != nil {
+		respondWithError("Error Marshalling created user", http.StatusBadRequest, res)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+	res.Write(data)
+}
+
 func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 	type parameters struct {
 		Email    string `json:"email"`
