@@ -18,11 +18,11 @@ func (cfg *apiConfig) polkaWebhook(res http.ResponseWriter, req *http.Request) {
 		} `json:"data"`
 	}
 
-  token, err := auth.GetAuthenticationToken(&req.Header, "ApiKey")
-  if err != nil || token != cfg.PolkaKey {
+	token, err := auth.GetAuthenticationToken(&req.Header, "ApiKey")
+	if err != nil || token != cfg.PolkaKey {
 		respondWithError("Unable to get token from header", http.StatusUnauthorized, res)
 		return
-  }
+	}
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {

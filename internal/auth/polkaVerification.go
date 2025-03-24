@@ -12,7 +12,7 @@ func GetAuthenticationToken(headers *http.Header, token string) (string, error) 
 		return "", fmt.Errorf("header does not contain authorization")
 	}
 
-	h = strings.Replace(h,token, "", 1)
+	h = strings.Replace(h, token, "", 1)
 	h = strings.Trim(h, " ")
 
 	return h, nil

@@ -25,11 +25,33 @@ type chirpData struct {
 }
 
 func (cfg *apiConfig) getChirps(res http.ResponseWriter, req *http.Request) {
-	chirps, _ := cfg.dabaseQueries.GetAllChirps(req.Context())
+  values := req.URL.Query()
+  var dbChirps []database.Chirp
+
+  value, ok := values["author_id"]
+  order, orderOk := values["sort"]
+  if !orderOk {
+    order = []string{"asc"}
+  }
+
+  if !ok { 
+    if order[0] == "desc" {
+      dbChirps, _ = cfg.dabaseQueries.GetAllChirpsDesc(req.Context())
+    } else {
+      dbChirps, _ = cfg.dabaseQueries.GetAllChirpsAsc(req.Context())
+    }
+  } else {
+    userId, _ := uuid.Parse(value[0])
+    if order[0] == "desc" {
+      dbChirps, _ = cfg.dabaseQueries.GetAllChirpsByUserIdDesc(req.Context(), userId)
+    } else {
+      dbChirps, _ = cfg.dabaseQueries.GetAllChirpsByUserIdAsc(req.Context(), userId)
+    }
+  }
 
 	var chirpss []chirp
 
-	for _, chirpep := range chirps {
+	for _, chirpep := range dbChirps {
 		chirpss = append(chirpss, chirp{
 			Id:        chirpep.ID.String(),
 			CreatedAt: chirpep.CreatedAt.String(),
