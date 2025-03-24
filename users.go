@@ -12,24 +12,24 @@ import (
 )
 
 func (cfg *apiConfig) updateUser(res http.ResponseWriter, req *http.Request) {
-  type parameters struct {
+	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
-  }
+	}
 
-  token, err := auth.GetBearerToken(&req.Header)
-  if err != nil {
-    msg := fmt.Sprintf("unable to get access token: %v", err)
-    respondWithError(msg, http.StatusUnauthorized, res)
-    return
-  }
+	token, err := auth.GetBearerToken(&req.Header)
+	if err != nil {
+		msg := fmt.Sprintf("unable to get access token: %v", err)
+		respondWithError(msg, http.StatusUnauthorized, res)
+		return
+	}
 
-  userId, err := auth.ValidateJWT(token, "TOP")
-  if err != nil {
-    msg := fmt.Sprintf("unable to validate the token: %v", err)
-    respondWithError(msg, http.StatusUnauthorized, res)
-    return
-  }
+	userId, err := auth.ValidateJWT(token, "TOP")
+	if err != nil {
+		msg := fmt.Sprintf("unable to validate the token: %v", err)
+		respondWithError(msg, http.StatusUnauthorized, res)
+		return
+	}
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -46,30 +46,32 @@ func (cfg *apiConfig) updateUser(res http.ResponseWriter, req *http.Request) {
 
 	hashedPassword, _ := hashPassword(input.Password)
 
-  user, err := cfg.dabaseQueries.UpdateUser(req.Context(), database.UpdateUserParams{
-    ID: userId,
-    Email: input.Email,
-    HashedPassword: hashedPassword,
-  })
+	user, err := cfg.dabaseQueries.UpdateUser(req.Context(), database.UpdateUserParams{
+		ID:             userId,
+		Email:          input.Email,
+		HashedPassword: hashedPassword,
+	})
 
-  if err != nil {
-    msg := fmt.Sprintf("unable to update user: %v", err)
-    respondWithError(msg, http.StatusInternalServerError, res)
-    return
-  }
+	if err != nil {
+		msg := fmt.Sprintf("unable to update user: %v", err)
+		respondWithError(msg, http.StatusInternalServerError, res)
+		return
+	}
 
 	type userType struct {
-		Id        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
+		Id          string `json:"id"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 
 	userData := userType{
-		Id:        user.ID.String(),
-		CreatedAt: user.CreatedAt.Time.String(),
-		UpdatedAt: user.UpdatedAt.Time.String(),
-		Email:     user.Email,
+		Id:          user.ID.String(),
+		CreatedAt:   user.CreatedAt.Time.String(),
+		UpdatedAt:   user.UpdatedAt.Time.String(),
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 
 	data, err := json.Marshal(userData)
@@ -115,17 +117,19 @@ func (cfg *apiConfig) addUser(res http.ResponseWriter, req *http.Request) {
 	}
 
 	type userType struct {
-		Id        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
+		Id          string `json:"id"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 
 	userData := userType{
-		Id:        user.ID.String(),
-		CreatedAt: user.CreatedAt.Time.String(),
-		UpdatedAt: user.UpdatedAt.Time.String(),
-		Email:     user.Email,
+		Id:          user.ID.String(),
+		CreatedAt:   user.CreatedAt.Time.String(),
+		UpdatedAt:   user.UpdatedAt.Time.String(),
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 
 	res.WriteHeader(http.StatusCreated)
@@ -181,6 +185,7 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 		Email        string `json:"email"`
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
+		IsChirpyRed  bool   `json:"is_chirpy_red"`
 	}
 
 	rtoken, err := auth.MakeRefreshToken()
@@ -207,6 +212,7 @@ func (cfg *apiConfig) login(res http.ResponseWriter, req *http.Request) {
 		Email:        user.Email,
 		Token:        token,
 		RefreshToken: rtoken,
+		IsChirpyRed:  user.IsChirpyRed,
 	}
 
 	res.WriteHeader(http.StatusOK)

@@ -47,56 +47,53 @@ func (cfg *apiConfig) getChirps(res http.ResponseWriter, req *http.Request) {
 
 func (cfg *apiConfig) deleteChirp(res http.ResponseWriter, req *http.Request) {
 	uu_id, _ := uuid.Parse(req.PathValue("chirpId"))
-  token, err := auth.GetBearerToken(&req.Header)
-  if err != nil {
-    msg := fmt.Sprintf("unable to get access token: %v", err)
-    respondWithError(msg, http.StatusUnauthorized, res)
-    return
-  }
+	token, err := auth.GetBearerToken(&req.Header)
+	if err != nil {
+		msg := fmt.Sprintf("unable to get access token: %v", err)
+		respondWithError(msg, http.StatusUnauthorized, res)
+		return
+	}
 
-  userId, err := auth.ValidateJWT(token, "TOP")
-  if err != nil {
-    msg := fmt.Sprintf("unable to validate the token: %v", err)
-    respondWithError(msg, http.StatusForbidden, res)
-    return
-  }
+	userId, err := auth.ValidateJWT(token, "TOP")
+	if err != nil {
+		msg := fmt.Sprintf("unable to validate the token: %v", err)
+		respondWithError(msg, http.StatusForbidden, res)
+		return
+	}
 
-  ok, err := cfg.dabaseQueries.UserHasChirp(req.Context(), database.UserHasChirpParams{
-    ID: uu_id,
-    UserID: userId,
+	ok, err := cfg.dabaseQueries.UserHasChirp(req.Context(), database.UserHasChirpParams{
+		ID:     uu_id,
+		UserID: userId,
+	})
 
-  })
+	if err != nil || !ok {
+		msg := fmt.Sprintf("chirp not fonud, or missing autharization: %v", err)
+		respondWithError(msg, http.StatusForbidden, res)
+		return
+	}
 
-  if err != nil || !ok {
-    msg := fmt.Sprintf("chirp not fonud, or missing autharization: %v", err)
-    respondWithError(msg, http.StatusForbidden, res)
-    return
-  }
+	err = cfg.dabaseQueries.DeleteChirpOfUser(req.Context(), database.DeleteChirpOfUserParams{
+		ID:     uu_id,
+		UserID: userId,
+	})
 
+	if err != nil {
+		msg := fmt.Sprintf("unable to delete a chirp: %v ", err)
+		respondWithError(msg, http.StatusNotFound, res)
+		return
+	}
 
-
-  err = cfg.dabaseQueries.DeleteChirpOfUser(req.Context(), database.DeleteChirpOfUserParams{
-    ID: uu_id,
-    UserID: userId,
-  })
-
-  if err != nil {
-    msg := fmt.Sprintf("unable to delete a chirp: %v ", err)
-    respondWithError(msg, http.StatusNotFound, res)
-    return
-  }
-
-  res.WriteHeader(http.StatusNoContent)
+	res.WriteHeader(http.StatusNoContent)
 }
 
 func (cfg *apiConfig) getChirpById(res http.ResponseWriter, req *http.Request) {
 	uu_id, _ := uuid.Parse(req.PathValue("chirpId"))
 	chirpik, err := cfg.dabaseQueries.GetChirpById(req.Context(), uu_id)
-  if err != nil {
-    msg := fmt.Sprintf("unable to find a chirp: %v ", err)
-    respondWithError(msg, http.StatusNotFound, res)
-    return
-  }
+	if err != nil {
+		msg := fmt.Sprintf("unable to find a chirp: %v ", err)
+		respondWithError(msg, http.StatusNotFound, res)
+		return
+	}
 	chirping := chirp{
 		Id:        chirpik.ID.String(),
 		CreatedAt: chirpik.CreatedAt.String(),

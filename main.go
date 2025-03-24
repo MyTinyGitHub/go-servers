@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	dabaseQueries  *database.Queries
 	JwtSecret      string
+	PolkaKey       string
 }
 
 func serveHTTPHealthz(res http.ResponseWriter, req *http.Request) {
@@ -29,6 +30,7 @@ func main() {
 
 	dbURL := os.Getenv("DB_URL")
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	db, _ := sql.Open("postgres", dbURL)
 	dbQueries := database.New(db)
@@ -38,6 +40,7 @@ func main() {
 	var conf apiConfig
 	conf.dabaseQueries = dbQueries
 	conf.JwtSecret = jwtSecret
+	conf.PolkaKey = polkaKey
 
 	server := &http.Server{
 		Handler: mux,
@@ -50,6 +53,8 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", serveHTTPHealthz)
 	mux.HandleFunc("GET /admin/metrics", conf.serveMetrics)
 	mux.HandleFunc("POST /admin/reset", conf.resetMetrics)
+
+	mux.HandleFunc("POST /api/polka/webhooks", conf.polkaWebhook)
 	mux.HandleFunc("POST /api/users", conf.addUser)
 	mux.HandleFunc("PUT /api/users", conf.updateUser)
 

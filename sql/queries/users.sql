@@ -30,3 +30,8 @@ RETURNING *;
 -- name: DeleteUsers :many
 DELETE FROM users
 RETURNING *;
+
+-- name: SetChirpToRed :exec
+UPDATE users
+SET is_chirpy_red = true
+WHERE id = $1;

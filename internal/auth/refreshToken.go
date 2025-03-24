@@ -1,8 +1,8 @@
 package auth
 
 import (
-  mRand "math/rand"
 	"encoding/hex"
+	mRand "math/rand"
 	"strconv"
 )
 
